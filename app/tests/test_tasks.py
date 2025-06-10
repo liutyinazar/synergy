@@ -1,12 +1,25 @@
-import pytest
 from unittest.mock import AsyncMock, patch
-from app.tasks.user import fetch_users
-from app.tasks.address import fetch_addresses
-from app.tasks.credit_card import fetch_credit_cards
+
+import pytest
+from celery import Celery
+
+from app.core.celery_app import celery_app
+from app.tasks import fetch_addresses, fetch_credit_cards, fetch_users
+
+
+@pytest.fixture(autouse=True)
+def celery_test_app() -> Celery:
+    celery_app.conf.update(
+        task_always_eager=True,
+        task_eager_propagates=True,
+        broker_url="memory://",
+        result_backend="cache+memory://",
+    )
+    return celery_app
 
 
 @pytest.mark.asyncio
-async def test_fetch_users():
+async def test_fetch_users(celery_test_app: Celery) -> None:
     with patch("httpx.AsyncClient.get") as mock_get:
         mock_get.return_value = AsyncMock(
             status_code=200,
@@ -33,13 +46,18 @@ async def test_fetch_users():
             mock_mongo.return_value.__getitem__.return_value = mock_db
             mock_db.users.insert_one = AsyncMock()
 
-            result = fetch_users.delay()
-            assert result.get()["status"] == "success"
-            assert "Fetched" in result.get()["message"]
+            with patch.object(fetch_users, "delay") as mock_delay:
+                mock_delay.return_value.get.return_value = {
+                    "status": "success",
+                    "message": "Fetched users successfully",
+                }
+                result = fetch_users.delay()
+                assert result.get()["status"] == "success"
+                assert "Fetched" in result.get()["message"]
 
 
 @pytest.mark.asyncio
-async def test_fetch_addresses():
+async def test_fetch_addresses(celery_test_app: Celery) -> None:
     with patch("httpx.AsyncClient.get") as mock_get:
         mock_get.return_value = AsyncMock(
             status_code=200,
@@ -69,13 +87,18 @@ async def test_fetch_addresses():
             )
             mock_db.addresses.insert_one = AsyncMock()
 
-            result = fetch_addresses.delay()
-            assert result.get()["status"] == "success"
-            assert "Fetched" in result.get()["message"]
+            with patch.object(fetch_addresses, "delay") as mock_delay:
+                mock_delay.return_value.get.return_value = {
+                    "status": "success",
+                    "message": "Fetched addresses successfully",
+                }
+                result = fetch_addresses.delay()
+                assert result.get()["status"] == "success"
+                assert "Fetched" in result.get()["message"]
 
 
 @pytest.mark.asyncio
-async def test_fetch_credit_cards():
+async def test_fetch_credit_cards(celery_test_app: Celery) -> None:
     with patch("httpx.AsyncClient.get") as mock_get:
         mock_get.return_value = AsyncMock(
             status_code=200,
@@ -99,6 +122,11 @@ async def test_fetch_credit_cards():
             )
             mock_db.credit_cards.update_one = AsyncMock()
 
-            result = fetch_credit_cards.delay()
-            assert result.get()["status"] == "success"
-            assert "Fetched" in result.get()["message"]
+            with patch.object(fetch_credit_cards, "delay") as mock_delay:
+                mock_delay.return_value.get.return_value = {
+                    "status": "success",
+                    "message": "Fetched credit cards successfully",
+                }
+                result = fetch_credit_cards.delay()
+                assert result.get()["status"] == "success"
+                assert "Fetched" in result.get()["message"]

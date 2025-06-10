@@ -1,15 +1,19 @@
-from pydantic_settings import BaseSettings
+import os
 from functools import lru_cache
+from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    MONGODB_URL: str = "mongodb://localhost:27017"
-    REDIS_URL: str = "redis://localhost:6379/0"
-    API_BASE_URL: str = "https://fakerapi.it/api/v2"
-    DATABASE_NAME: str = "user_data_db"
+    MONGODB_URL: Optional[str] = None
+    REDIS_URL: Optional[str] = None
+    API_BASE_URL: Optional[str] = None
+    DATABASE_NAME: Optional[str] = None
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=".env.test" if os.getenv("TESTING") else ".env"
+    )
 
 
 @lru_cache()
