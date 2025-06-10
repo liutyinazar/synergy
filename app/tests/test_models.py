@@ -1,11 +1,13 @@
-from datetime import datetime, UTC
-from app.models.user import User
+from datetime import UTC, datetime
+from typing import Any, Dict
+
 from app.models.address import Address
 from app.models.credit_card import CreditCard
+from app.models.user import User
 
 
-def test_user_model():
-    user_data = {
+def test_user_model() -> None:
+    user_data: Dict[str, Any] = {
         "id": 1,
         "uuid": "test-uuid",
         "firstname": "John",
@@ -28,8 +30,8 @@ def test_user_model():
     assert user.email == user_data["email"]
 
 
-def test_address_model():
-    address_data = {
+def test_address_model() -> None:
+    address_data: Dict[str, Any] = {
         "id": 1,
         "street": "Test Street",
         "streetName": "Test Street Name",
@@ -58,8 +60,8 @@ def test_address_model():
     assert address.user_id == address_data["user_id"]
 
 
-def test_credit_card_model():
-    credit_card_data = {
+def test_credit_card_model() -> None:
+    credit_card_data: Dict[str, Any] = {
         "type": "Visa",
         "number": "1234567890",
         "expiration": "01/25",

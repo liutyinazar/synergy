@@ -1,24 +1,30 @@
+import asyncio
+from typing import Dict
+
 import httpx
+from celery import Task
 from motor.motor_asyncio import AsyncIOMotorClient
-from app.core.config import get_settings
+
 from app.core.celery_app import celery_app
+from app.core.config import get_settings
+from app.models.address import Address
 
 settings = get_settings()
 
 
-@celery_app.task
-def fetch_addresses():
-    async def _fetch_addresses():
+@celery_app.task(bind=True)
+def fetch_addresses(self: Task) -> Dict[str, str]:
+    async def _fetch_addresses() -> Dict[str, str]:
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{settings.API_BASE_URL}/addresses?_quantity=5"
             )
             if response.status_code == 200:
-                addresses = response.json()["data"]
+                addresses_data = response.json()["data"]
 
                 # Connect to MongoDB
-                client = AsyncIOMotorClient(settings.MONGODB_URL)
-                db = client[settings.DATABASE_NAME]
+                mongo_client = AsyncIOMotorClient(settings.MONGODB_URL)
+                db = mongo_client[str(settings.DATABASE_NAME)]
                 collection = db.addresses
 
                 # Get random user IDs
@@ -26,18 +32,24 @@ def fetch_addresses():
                 users = await users_collection.find().to_list(length=5)
 
                 # Insert addresses with user IDs
-                for address, user in zip(addresses, users):
-                    address["user_id"] = user["id"]
+                for address_data, user in zip(addresses_data, users):
+                    address = Address(
+                        **address_data,
+                        user_id=user["id"],
+                    )
                     await collection.update_one(
-                        {"id": address["id"]}, {"$set": address}, upsert=True
+                        {"id": address_data["id"]},
+                        {"$set": address.dict()},
+                        upsert=True,
                     )
 
                 return {
                     "status": "success",
-                    "message": f"Fetched {len(addresses)} addresses",
+                    "message": f"Fetched {len(addresses_data)} addresses",
                 }
-            return {"status": "error", "message": "Failed to fetch addresses"}
-
-    import asyncio
+            return {
+                "status": "error",
+                "message": "Failed to fetch addresses",
+            }
 
     return asyncio.run(_fetch_addresses())

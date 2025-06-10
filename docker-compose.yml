@@ -5,6 +5,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      - ./logs:/app/logs
     depends_on:
       - mongodb
       - redis
@@ -12,12 +13,14 @@ services:
       - MONGODB_URL=mongodb://mongodb:27017
       - REDIS_URL=redis://redis:6379/0
       - API_BASE_URL=https://fakerapi.it/api/v2
+      - DATABASE_NAME=user_data_db
 
   celery_worker:
     build: .
     command: celery -A app.core.celery_app worker --loglevel=info
     volumes:
       - .:/app
+      - ./logs:/app/logs
     depends_on:
       - redis
       - mongodb
@@ -25,12 +28,14 @@ services:
       - MONGODB_URL=mongodb://mongodb:27017
       - REDIS_URL=redis://redis:6379/0
       - API_BASE_URL=https://fakerapi.it/api/v2
+      - DATABASE_NAME=user_data_db
 
   celery_beat:
     build: .
     command: celery -A app.core.celery_app beat --loglevel=info
     volumes:
       - .:/app
+      - ./logs:/app/logs
     depends_on:
       - redis
       - mongodb
@@ -38,6 +43,7 @@ services:
       - MONGODB_URL=mongodb://mongodb:27017
       - REDIS_URL=redis://redis:6379/0
       - API_BASE_URL=https://fakerapi.it/api/v2
+      - DATABASE_NAME=user_data_db
 
   mongodb:
     image: mongo:latest
