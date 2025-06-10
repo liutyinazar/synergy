@@ -1,15 +1,19 @@
-from pydantic_settings import BaseSettings
+import os
 from functools import lru_cache
+from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    MONGODB_URL: str
-    REDIS_URL: str
-    API_BASE_URL: str
-    DATABASE_NAME: str
+    MONGODB_URL: Optional[str] = None
+    REDIS_URL: Optional[str] = None
+    API_BASE_URL: Optional[str] = None
+    DATABASE_NAME: Optional[str] = None
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=".env.test" if os.getenv("TESTING") else ".env"
+    )
 
 
 @lru_cache()
